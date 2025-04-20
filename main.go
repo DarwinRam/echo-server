@@ -3,11 +3,23 @@ package main
 import(
 	"fmt"
 	"net"
+	"time"
 )
 
 
 func handleConnection(conn net.Conn) {
 	defer conn.Close()
+
+	clientAddr := conn.RemoteAddr().String()             // Get client address (IP:Port)
+	fmt.Printf("[+] New connection from %s at %s\n",     // Log connection
+		clientAddr, time.Now().Format(time.RFC3339))      // Use RFC3339 for readable timestamp
+
+	defer func() {
+		fmt.Printf("[-] Disconnected: %s at %s\n",
+			clientAddr, time.Now().Format(time.RFC3339)) // Log disconnection
+	}()
+
+
 	buf := make([]byte, 1024)
 
 	for {
