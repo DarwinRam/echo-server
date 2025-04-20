@@ -11,6 +11,9 @@ import (
 	"flag"
 )
 
+const maxMessageLength = 1024
+
+
 func handleConnection(conn net.Conn) {
 	defer conn.Close()
 
@@ -52,6 +55,12 @@ func handleConnection(conn net.Conn) {
 
 		trimmed := strings.TrimSpace(message)
 
+		// 🔐 Overflow protection
+		if len(trimmed) > maxMessageLength {
+			trimmed = trimmed[:maxMessageLength]
+			_, _ = conn.Write([]byte("Message too long. Truncated to 1024 bytes.\n"))
+		}
+
 		// Log to file
 		logLine := fmt.Sprintf("[%s] %s\n", time.Now().Format(time.RFC3339), trimmed)
 		if _, err := logFile.WriteString(logLine); err != nil {
@@ -66,7 +75,6 @@ func handleConnection(conn net.Conn) {
 		}
 	}
 }
-
 
 func main() {
 	// Define a port flag with default value 4000
