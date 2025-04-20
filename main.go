@@ -1,40 +1,43 @@
 package main
 
-import(
+import (
 	"fmt"
+	"io"
 	"net"
 	"time"
 )
 
-
 func handleConnection(conn net.Conn) {
 	defer conn.Close()
 
-	clientAddr := conn.RemoteAddr().String()             // Get client address (IP:Port)
-	fmt.Printf("[+] New connection from %s at %s\n",     // Log connection
-		clientAddr, time.Now().Format(time.RFC3339))      // Use RFC3339 for readable timestamp
+	clientAddr := conn.RemoteAddr().String()
+	fmt.Printf("[+] New connection from %s at %s\n", clientAddr, time.Now().Format(time.RFC3339))
 
 	defer func() {
-		fmt.Printf("[-] Disconnected: %s at %s\n",
-			clientAddr, time.Now().Format(time.RFC3339)) // Log disconnection
+		fmt.Printf("[-] Disconnected: %s at %s\n", clientAddr, time.Now().Format(time.RFC3339))
 	}()
-
 
 	buf := make([]byte, 1024)
 
 	for {
 		n, err := conn.Read(buf)
 		if err != nil {
-			fmt.Println("Error reading from client:", err)
+			if err == io.EOF {
+				fmt.Printf("[!] %s disconnected (EOF)\n", clientAddr)
+			} else {
+				fmt.Printf("[!] Error reading from %s: %v\n", clientAddr, err)
+			}
 			return
 		}
 
 		_, err = conn.Write(buf[:n])
-	if err != nil {
-		fmt.Println("Error writing to client:", err)
+		if err != nil {
+			fmt.Printf("[!] Error writing to %s: %v\n", clientAddr, err)
+			return
+		}
 	}
-  } 
 }
+
 
 func main(){
 
