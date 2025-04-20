@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 	"time"
+	"flag"
 )
 
 func handleConnection(conn net.Conn) {
@@ -61,28 +62,29 @@ func handleConnection(conn net.Conn) {
 	}
 }
 
+func main() {
+	// Define a port flag with default value 4000
+	port := flag.String("port", "4000", "TCP port to listen on")
+	flag.Parse()
 
+	address := fmt.Sprintf(":%s", *port)
 
-
-func main(){
-
-	listener, err:=net.Listen("tcp", ":4000")
+	listener, err := net.Listen("tcp", address)
 	if err != nil {
-		panic(err)
+		fmt.Printf("[!] Failed to start server on port %s: %v\n", *port, err)
+		os.Exit(1)
 	}
 	defer listener.Close()
 
-	fmt.Println("Server listening on :4000")
+	fmt.Printf("[✓] Server listening on port %s\n", *port)
 
-	for{
+	for {
 		conn, err := listener.Accept()
-		if err != nil{
-			fmt.Println("Error accepting:", err)
+		if err != nil {
+			fmt.Println("[!] Error accepting:", err)
 			continue
 		}
-		go handleConnection(conn)
+		go handleConnection(conn) // concurrency already added!
 	}
-	
-
 }
 
