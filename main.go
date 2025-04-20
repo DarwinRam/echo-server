@@ -1,9 +1,11 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"io"
 	"net"
+	"strings"
 	"time"
 )
 
@@ -17,10 +19,11 @@ func handleConnection(conn net.Conn) {
 		fmt.Printf("[-] Disconnected: %s at %s\n", clientAddr, time.Now().Format(time.RFC3339))
 	}()
 
-	buf := make([]byte, 1024)
+	reader := bufio.NewReader(conn)
 
 	for {
-		n, err := conn.Read(buf)
+		// Read until newline
+		message, err := reader.ReadString('\n')
 		if err != nil {
 			if err == io.EOF {
 				fmt.Printf("[!] %s disconnected (EOF)\n", clientAddr)
@@ -30,13 +33,18 @@ func handleConnection(conn net.Conn) {
 			return
 		}
 
-		_, err = conn.Write(buf[:n])
+		// Trim input
+		trimmed := strings.TrimSpace(message)
+
+		// Echo it back
+		_, err = conn.Write([]byte(trimmed + "\n"))
 		if err != nil {
 			fmt.Printf("[!] Error writing to %s: %v\n", clientAddr, err)
 			return
 		}
 	}
 }
+
 
 
 func main(){
