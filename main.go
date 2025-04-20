@@ -2,17 +2,16 @@ package main
 
 import (
 	"bufio"
+	"flag"
 	"fmt"
 	"io"
 	"net"
 	"os"
 	"strings"
 	"time"
-	"flag"
 )
 
 const maxMessageLength = 1024
-
 
 func handleConnection(conn net.Conn) {
 	defer conn.Close()
@@ -68,66 +67,64 @@ func handleConnection(conn net.Conn) {
 		}
 
 		// Personality mode responses
-var response string
-shouldClose := false
+		var response string
+		shouldClose := false
 
-// Command protocol
-if strings.HasPrefix(trimmed, "/") {
-	switch {
-	case trimmed == "/time":
-		response := time.Now().Format("15:04:05 MST 2006-01-02")
+		// Command protocol
+		if strings.HasPrefix(trimmed, "/") {
+			switch {
+			case trimmed == "/time":
+				response := time.Now().Format("15:04:05 MST 2006-01-02")
+				_, err = conn.Write([]byte(response + "\n"))
+				if err != nil {
+					fmt.Printf("[!] Error writing to %s: %v\n", clientAddr, err)
+					return
+				}
+				continue
+
+			case trimmed == "/quit":
+				_, _ = conn.Write([]byte("Goodbye!\n"))
+				fmt.Printf("[i] Client %s sent /quit\n", clientAddr)
+				return
+
+			case strings.HasPrefix(trimmed, "/echo "):
+				msg := strings.TrimPrefix(trimmed, "/echo ")
+				_, err = conn.Write([]byte(msg + "\n"))
+				if err != nil {
+					fmt.Printf("[!] Error writing to %s: %v\n", clientAddr, err)
+					return
+				}
+				continue
+
+			default:
+				_, _ = conn.Write([]byte("Unknown command\n"))
+				continue
+			}
+		}
+
+		switch trimmed {
+		case "hello":
+			response = "Hi there!"
+		case "":
+			response = "Say something..."
+		case "bye":
+			response = "Goodbye!"
+			shouldClose = true
+		default:
+			response = trimmed // default echo
+		}
+
+		// Send response
 		_, err = conn.Write([]byte(response + "\n"))
 		if err != nil {
 			fmt.Printf("[!] Error writing to %s: %v\n", clientAddr, err)
 			return
 		}
-		continue
 
-	case trimmed == "/quit":
-		_, _ = conn.Write([]byte("Goodbye!\n"))
-		fmt.Printf("[i] Client %s sent /quit\n", clientAddr)
-		return
-
-	case strings.HasPrefix(trimmed, "/echo "):
-		msg := strings.TrimPrefix(trimmed, "/echo ")
-		_, err = conn.Write([]byte(msg + "\n"))
-		if err != nil {
-			fmt.Printf("[!] Error writing to %s: %v\n", clientAddr, err)
+		if shouldClose {
+			fmt.Printf("[i] Closing connection with %s after 'bye'\n", clientAddr)
 			return
 		}
-		continue
-
-	default:
-		_, _ = conn.Write([]byte("Unknown command\n"))
-		continue
-	}
-}
-
-
-switch trimmed {
-case "hello":
-	response = "Hi there!"
-case "":
-	response = "Say something..."
-case "bye":
-	response = "Goodbye!"
-	shouldClose = true
-default:
-	response = trimmed // default echo
-}
-
-// Send response
-_, err = conn.Write([]byte(response + "\n"))
-if err != nil {
-	fmt.Printf("[!] Error writing to %s: %v\n", clientAddr, err)
-	return
-}
-
-if shouldClose {
-	fmt.Printf("[i] Closing connection with %s after 'bye'\n", clientAddr)
-	return
-}
-
 	}
 }
 
