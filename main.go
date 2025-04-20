@@ -67,12 +67,34 @@ func handleConnection(conn net.Conn) {
 			fmt.Printf("[!] Failed to write to log for %s: %v\n", clientIP, err)
 		}
 
-		// Echo back
-		_, err = conn.Write([]byte(trimmed + "\n"))
-		if err != nil {
-			fmt.Printf("[!] Error writing to %s: %v\n", clientAddr, err)
-			return
-		}
+		// Personality mode responses
+var response string
+shouldClose := false
+
+switch trimmed {
+case "hello":
+	response = "Hi there!"
+case "":
+	response = "Say something..."
+case "bye":
+	response = "Goodbye!"
+	shouldClose = true
+default:
+	response = trimmed // default echo
+}
+
+// Send response
+_, err = conn.Write([]byte(response + "\n"))
+if err != nil {
+	fmt.Printf("[!] Error writing to %s: %v\n", clientAddr, err)
+	return
+}
+
+if shouldClose {
+	fmt.Printf("[i] Closing connection with %s after 'bye'\n", clientAddr)
+	return
+}
+
 	}
 }
 
